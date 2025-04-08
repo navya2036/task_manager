@@ -3,7 +3,7 @@ import google.generativeai as genai
 from datetime import datetime
 
 # Google API Key Configuration
-API_KEY = "YOUR_API_KEY_HERE"  # Replace with your actual API key
+API_KEY = "AIzaSyB3uidq20tP_lUTFxoN9Mvq4mgRLDSQ3Bk"  # Replace with your actual API key
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 

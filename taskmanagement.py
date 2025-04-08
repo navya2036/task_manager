@@ -85,10 +85,19 @@ if prompt := st.chat_input("Say something! ...."):
             date_time = parts[1].strip().split("at")
             date = date_time[0].strip()
             time = date_time[1].strip()
+    
+            # Store event
             st.session_state.calendar.append({"event": event, "date": date, "time": time})
-            reply = f"📅 Event added: **{event}** on `{date}` at `{time}`"
-        except:
+    
+            # Automatically create reminder for event
+            reminder_note = f"Reminder: {event} at {time} on {date}"
+            st.session_state.reminders.append({"note": reminder_note, "time": f"{date} {time}"})
+    
+            reply = f"📅 Event added: **{event}** on `{date}` at `{time}`\n🔔 Reminder also created for this event."
+    
+        except Exception as e:
             reply = "⚠️ Please provide event in format: `Add event [event name] on [date] at [time]`"
+
 
     elif "show tasks" in prompt.lower():
         if st.session_state.tasks:

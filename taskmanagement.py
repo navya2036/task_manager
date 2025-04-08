@@ -1,128 +1,114 @@
 import streamlit as st
 import google.generativeai as genai
-from datetime import datetime
 
 # Configure Gemini
-API_KEY = "AIzaSyB3uidq20tP_lUTFxoN9Mvq4mgRLDSQ3Bk"  # Replace with your actual API key
-# Replace with your Gemini API Key
+API_KEY = "AIzaSyB3uidq20tP_lUTFxoN9Mvq4mgRLDSQ3Bk"  # Replace with your Gemini API Key
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-# Initialize session state
+# Initialize memory
 if "chat" not in st.session_state:
     st.session_state.chat = model.start_chat(history=[])
-
-if "tasks" not in st.session_state:
-    st.session_state.tasks = []
-
-if "reminders" not in st.session_state:
-    st.session_state.reminders = []
-
-if "calendar" not in st.session_state:
-    st.session_state.calendar = []
-
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "tasks" not in st.session_state:
+    st.session_state.tasks = []
+if "reminders" not in st.session_state:
+    st.session_state.reminders = []
+if "calendar_events" not in st.session_state:
+    st.session_state.calendar_events = []
 
-# Streamlit UI
-st.title("📅 Task Manager Chatbot - Gemini Powered")
-st.write("Hi! I'm your assistant. I can manage tasks, reminders, and calendar events.")
+# Page title
+st.title("🧠 AI Task Manager Chatbot")
+st.write("Type things like: `Set task`, `Set reminder`, or `Add event`...")
 
-# Display existing tasks
-with st.expander("📋 View Tasks"):
+# Display stored info
+with st.expander("📋 Tasks"):
     if st.session_state.tasks:
-        for i, task in enumerate(st.session_state.tasks, 1):
-            st.write(f"{i}. {task}")
+        for task in st.session_state.tasks:
+            st.write(f"✅ {task}")
     else:
-        st.write("📭 No tasks available.")
+        st.write("No tasks added yet.")
 
-# Display existing reminders
-with st.expander("⏰ View Reminders"):
+with st.expander("🔔 Reminders"):
     if st.session_state.reminders:
-        for rem in st.session_state.reminders:
-            st.write(f"🔔 Reminder: **{rem['note']}** at `{rem['time']}`")
+        for reminder in st.session_state.reminders:
+            st.write(f"🔔 {reminder['note']} at {reminder['time']}")
     else:
-        st.write("🕐 No reminders set.")
+        st.write("No reminders yet.")
 
-# Display calendar events
-with st.expander("📆 View Calendar Events"):
-    if st.session_state.calendar:
-        for evt in st.session_state.calendar:
-            st.write(f"📅 **{evt['event']}** on `{evt['date']}` at `{evt['time']}`")
+with st.expander("📆 Calendar Events"):
+    if st.session_state.calendar_events:
+        for event in st.session_state.calendar_events:
+            st.write(f"📅 {event['event']} on {event['date']} at {event['time']}")
     else:
-        st.write("📌 No calendar events yet.")
+        st.write("No events yet.")
 
-# Chat Input
-if prompt := st.chat_input("Say something! ...."):
-    # Append user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
+# Chat interface
+if prompt := st.chat_input("Say something..."):
     with st.chat_message("user"):
         st.markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    
+    lower_prompt = prompt.lower()
+    reply = ""
 
-    # Check for command keywords
-    if "set task" in prompt.lower():
+    if "set task" in lower_prompt:
         task = prompt.split("set task", 1)[-1].strip()
         if task:
             st.session_state.tasks.append(task)
             reply = f"✅ Task added: **{task}**"
         else:
-            reply = "⚠️ Please specify the task."
+            reply = "⚠️ Please provide a task after `set task`."
 
-    elif "set reminder" in prompt.lower():
+    elif "set reminder" in lower_prompt and "at" in lower_prompt:
         try:
-            parts = prompt.split("at")
-            note = parts[0].split("set reminder", 1)[-1].strip()
-            time = parts[1].strip()
+            note = prompt.split("set reminder", 1)[-1].split("at")[0].strip()
+            time = prompt.split("at", 1)[-1].strip()
             st.session_state.reminders.append({"note": note, "time": time})
             reply = f"🔔 Reminder set: **{note}** at `{time}`"
         except:
-            reply = "⚠️ Please provide reminder in format: `Set reminder [note] at [time]`"
+            reply = "⚠️ Format: `Set reminder <thing> at <time>`"
 
-    elif "add event" in prompt.lower():
+    elif "add event" in lower_prompt and "on" in lower_prompt and "at" in lower_prompt:
         try:
-            parts = prompt.lower().split("on")
-            event = parts[0].split("add event", 1)[-1].strip()
-            date_time = parts[1].strip().split("at")
-            date = date_time[0].strip()
-            time = date_time[1].strip()
-    
-            # Store event
-            st.session_state.calendar.append({"event": event, "date": date, "time": time})
-    
-            # Automatically create reminder for event
-            reminder_note = f"Reminder: {event} at {time} on {date}"
-            st.session_state.reminders.append({"note": reminder_note, "time": f"{date} {time}"})
-    
-            reply = f"📅 Event added: **{event}** on `{date}` at `{time}`\n🔔 Reminder also created for this event."
-    
-        except Exception as e:
-            reply = "⚠️ Please provide event in format: `Add event [event name] on [date] at [time]`"
+            event = prompt.split("add event", 1)[-1].split("on")[0].strip()
+            date = prompt.split("on", 1)[-1].split("at")[0].strip()
+            time = prompt.split("at", 1)[-1].strip()
 
+            st.session_state.calendar_events.append({"event": event, "date": date, "time": time})
+            st.session_state.reminders.append({"note": f"{event}", "time": f"{date} {time}"})
+            reply = f"📅 Event added: **{event}** on `{date}` at `{time}`\n🔔 Reminder also created."
+        except:
+            reply = "⚠️ Format: `Add event <name> on <date> at <time>`"
 
-    elif "show tasks" in prompt.lower():
-        if st.session_state.tasks:
-            reply = "**Your tasks:**\n" + "\n".join([f"- {task}" for task in st.session_state.tasks])
+    elif "show tasks" in lower_prompt:
+        tasks = st.session_state.tasks
+        if tasks:
+            reply = "**Your tasks:**\n" + "\n".join([f"- {t}" for t in tasks])
         else:
-            reply = "📭 No tasks available right now."
+            reply = "📭 No tasks added yet."
 
-    elif "show reminders" in prompt.lower():
-        if st.session_state.reminders:
-            reply = "**Your reminders:**\n" + "\n".join([f"- {r['note']} at {r['time']}" for r in st.session_state.reminders])
+    elif "show reminders" in lower_prompt:
+        reminders = st.session_state.reminders
+        if reminders:
+            reply = "**Your reminders:**\n" + "\n".join([f"- {r['note']} at {r['time']}" for r in reminders])
         else:
-            reply = "🕐 No reminders set."
+            reply = "🕐 No reminders set yet."
 
-    elif "show calendar" in prompt.lower():
-        if st.session_state.calendar:
-            reply = "**Your calendar events:**\n" + "\n".join([f"- {e['event']} on {e['date']} at {e['time']}" for e in st.session_state.calendar])
+    elif "show calendar" in lower_prompt or "show events" in lower_prompt:
+        events = st.session_state.calendar_events
+        if events:
+            reply = "**Your events:**\n" + "\n".join([f"- {e['event']} on {e['date']} at {e['time']}" for e in events])
         else:
-            reply = "📌 No calendar events."
+            reply = "📆 No events yet."
 
     else:
-        # Use Gemini response if it's not a task/reminder/calendar command
+        # Default Gemini response
         response = st.session_state.chat.send_message(prompt)
         reply = response.text
 
-    # Show assistant reply
+    # Show assistant message
     st.session_state.messages.append({"role": "assistant", "content": reply})
     with st.chat_message("assistant"):
         st.markdown(reply)
